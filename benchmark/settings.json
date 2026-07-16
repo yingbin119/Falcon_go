@@ -1,0 +1,19 @@
+{
+    "key": {
+        "name": "wyb",
+        "path": "/home/wyb/.ssh/id_rsa",
+        "accesskey": "/home/wyb/.aliyun/access.json"
+    },
+    "ports": {
+        "consensus": 8000
+    },
+    "instances": {
+        "type": "ecs.g9i.xlarge",
+        "regions": [
+            "us-east-1",
+            "ap-southeast-1",
+            "us-west-1",
+            "eu-central-1"
+        ]
+    }
+}

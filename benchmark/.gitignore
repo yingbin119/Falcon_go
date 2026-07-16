@@ -1,0 +1,6 @@
+logs/
+results/
+db-*/
+main
+.*.json
+__pycache__/
