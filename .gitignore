@@ -1,23 +1,26 @@
 # Go build outputs
 /main
-/node
 /falcon
-main
 
-# Local testbed / benchmark runtime artifacts
-*.log
-logs/
-results/
-db-*/
+# node source is tracked
+# /node/
+
+# Runtime artifacts
+*.log*
+*logs/*
+*results/*
+*db-*/
 .deploy/
 .bench/
 .runlogs/
-.store*/
-.node-key-*.json
-.node-ts-key-*.json
+.store/
+
+# Keys and configs
+node-key-*.json
+*.node-ts-key-*.json
 .committee.json
 .parameters.json
 
-# Python
+# Python cache
 __pycache__/
 *.pyc
