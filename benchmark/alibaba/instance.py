@@ -18,8 +18,8 @@ from alibaba.settings import Settings, SettingsError
 
 
 class InstanceManager:
-    INSTANCE_NAME = 'Chimera'
-    SECURITY_GROUP_NAME = 'Chimera'
+    INSTANCE_NAME = 'Falcon'
+    SECURITY_GROUP_NAME = 'Falcon'
     VPC_NAME = 'lightDag'
 
     def __init__(self, settings):

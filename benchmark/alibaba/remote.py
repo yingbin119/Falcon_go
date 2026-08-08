@@ -113,7 +113,6 @@ class Bench:
             c.put(PathMaker.parameters_file(), '.')
 
     def install(self):
-
         cmd = [
             'sudo apt-get update',
             'sudo apt-get -y upgrade',
@@ -131,6 +130,7 @@ class Bench:
         except (GroupException, ExecutionError) as e:
             e = FabricError(e) if isinstance(e, GroupException) else e
             raise BenchError('Failed to install repo on testbed', e)
+
 
     def upload_exec(self):
         hosts = self.manager.hosts(flat=True)
