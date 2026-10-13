@@ -6,7 +6,6 @@ from paramiko import RSAKey
 from paramiko.ssh_exception import PasswordRequiredException, SSHException
 from os.path import basename, splitext
 from time import sleep
-from math import ceil
 from os.path import join
 import subprocess
 
@@ -163,7 +162,7 @@ class Bench:
         # Generate threshold signature files.
         tss_keys = []
         threshold_key_files = [PathMaker.threshold_key_file(i) for i in range(nodes)]
-        N , T = nodes , 2 * (( nodes - 1 ) // 3) + 1
+        N , T = nodes , ( nodes - 1 ) // 3 + 1  # T = f+1: the common-coin reveal threshold (LowThreshold)
         cmd = CommandMaker.generate_tss_key(path = "./", N = N, T = T).split()
         subprocess.run(cmd, check=True)
         for filename in threshold_key_files:
@@ -232,7 +231,7 @@ class Bench:
         # Wait for all transactions to be processed.
         duration = bench_parameters.duration
         for _ in progress_bar(range(100), prefix=f'Running benchmark ({duration} sec):'):
-            sleep(ceil(duration / 100))
+            sleep(duration / 100)
         self.kill(hosts=hosts, delete_logs=False)
 
     def download(self,node_instance,ts):

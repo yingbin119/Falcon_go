@@ -120,7 +120,7 @@ def remote(ctx):
     node_params = {
         "pool": {
             # "rate": 1_000,              # ignore: tx send rate
-            "tx_size": 250,               # tx size
+            "tx_size": 32,               # tx size B
             # "batch_size": 200,          # ignore: the max number of tx that can be hold
             "max_queue_size": 100_000
 	    },

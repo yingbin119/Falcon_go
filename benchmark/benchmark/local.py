@@ -65,7 +65,7 @@ class LocalBench:
             # Generate threshold signature files.
             tss_keys = []
             threshold_key_files = [PathMaker.threshold_key_file(i) for i in range(nodes)]
-            N , T = nodes , 2 * (( nodes - 1 ) // 3) + 1
+            N , T = nodes , ( nodes - 1 ) // 3 + 1  # T = f+1: the common-coin reveal threshold (LowThreshold)
             cmd = CommandMaker.generate_tss_key(path = "./", N = N, T = T).split()
             subprocess.run(cmd, check=True)
             for filename in threshold_key_files:

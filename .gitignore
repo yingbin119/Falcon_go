@@ -16,7 +16,7 @@
 .store/
 
 # Keys and configs
-node-key-*.json
+.node-key-*.json
 *.node-ts-key-*.json
 .committee.json
 .parameters.json

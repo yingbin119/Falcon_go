@@ -40,7 +40,10 @@ class InstanceManager:
             config.region_id = region
             self.ecs_clients[region] = Ecs20140526Client(config)
             self.vpc_clients[region] = Vpc20160428Client(config)
-        self.aliyun_runtime = util_models.RuntimeOptions()
+        self.aliyun_runtime = util_models.RuntimeOptions(
+            connect_timeout=10_000,   # 连接超时 10s
+            read_timeout=30_000,      # 读超时 30s
+        )
 
     @classmethod
     def make(cls, settings_file='settings.json'):

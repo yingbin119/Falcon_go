@@ -65,10 +65,10 @@ func newPrepareMaker() *PrepareMaker {
 }
 
 // Append returns (val, flag, true) once 2f+1 prepares are gathered. flag==true
-// means the decision is unanimous (commit or skip directly); flag==false means
-// the value must be carried forward (PRE_ONE→PRE_TWO, or PRE_TWO→ABA).
+// means the votes are unanimous (val 为全票值); flag==false means mixed votes,
+// val is the carried value (有 OPT 则 OPT).
 func (m *PrepareMaker) Append(p *PrepareMsg, committee Committee) (int, bool, bool) {
-	if _, ok := m.used[p.Author]; ok {
+	if _, ok := m.used[p.Author]; ok { //去重, ok = false
 		return 0, false, false
 	}
 	m.used[p.Author] = struct{}{}
@@ -79,22 +79,14 @@ func (m *PrepareMaker) Append(p *PrepareMsg, committee Committee) (int, bool, bo
 	}
 
 	if m.optnum+m.pesnum == committee.HightThreshold() {
-		if p.Phase == PRE_ONE {
-			if m.optnum >= committee.HightThreshold() {
-				return OPT, true, true
-			} else if m.optnum > 0 {
-				return OPT, false, true
-			}
-			return PES, false, true
+		if m.optnum >= committee.HightThreshold() {
+			return OPT, true, true
+		} else if m.optnum > 0 {
+			return OPT, false, true
 		}
-		// PRE_TWO
-		if m.pesnum >= committee.HightThreshold() {
-			return PES, true, true
-		} else if m.pesnum > 0 {
-			return PES, false, true
-		}
-		return OPT, false, true
+		return PES, true, true
 	}
+	//未到2f + 1, ok = false
 	return 0, false, false
 }
 

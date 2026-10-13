@@ -79,7 +79,7 @@ func NewCore(
 		commitChannel: commitChannel,
 		loopBackCh:    make(chan ConsensusMessage, 10_000),
 		epoch:         0,
-		height:        int(name),
+		height:        int(name), //每个节点固定的 RBC 通道（= 自己的节点 ID）
 		fallbackLag:   parameters.Fallback,
 
 		buffers:         make(map[slotKey]bool),
@@ -218,6 +218,7 @@ func (c *Core) handleRbcEcho(echo *EchoMsg) error {
 		return err
 	}
 	c.broadcastAndSelf(ready)
+	// g1, 往AABA输入1
 	return c.invokePrepare(echo.Epoch, echo.Height, OPT)
 }
 
@@ -240,9 +241,11 @@ func (c *Core) handleRbcReady(ready *ReadyMsg) error {
 			return err
 		}
 		c.broadcastAndSelf(myReady)
+		// g1, 往AABA输入1
 		return c.invokePrepare(ready.Epoch, ready.Height, OPT)
 	}
 	if len(proof.Votes) == c.committee.HightThreshold() {
+		//2f + 1 ready, commit
 		return c.processRbcOutput(ready.Epoch, ready.Height)
 	}
 	return nil
@@ -264,10 +267,12 @@ func (c *Core) processRbcOutput(epoch, height int) error {
 	outs[height] = true
 	c.commitor.BufferBlock(block)
 
+	//2f + 1 g2, 推进至下一轮
 	if len(outs) == c.committee.HightThreshold() {
 		if err := c.rbcAdvance(epoch + 1); err != nil {
 			return err
 		}
+		//每推进一个 epoch, 看看epoch 里剩余节点的RBC
 		return c.fallback(epoch)
 	}
 	return nil
@@ -285,9 +290,12 @@ func (c *Core) fallback(curEpoch int) error {
 	if curEpoch < c.fallbackLag {
 		return nil
 	}
+	//lag=1, epoch 3 凑齐 2f+1 个输出，推进到epoch 4
+	//检查 epoch 2。
 	fallEpoch := curEpoch - c.fallbackLag
 	for h := 0; h < c.committee.Size(); h++ {
 		if !c.prepareFlags[slotKey{fallEpoch, h}] {
+			//已有2f+1个节点g2, 此时尚未AABA的节点, 说明连g1都没有
 			if err := c.invokePrepare(fallEpoch, h, PES); err != nil {
 				return err
 			}
@@ -316,27 +324,22 @@ func (c *Core) handlePrepare(prep *PrepareMsg) error {
 	if !prep.Verify(c.committee) {
 		return ErrSignature(PrepareType, prep.Epoch, prep.Height, int(prep.Author))
 	}
+	//ok: 是否凑够 2f+1 票；flag: 是否全票一致；val: 倾向值，带进下一阶段。
 	val, flag, ok := c.aggregator.AddPrepareVote(prep)
 	if !ok {
 		return nil
 	}
+	// 1 的 快速路径也可以删掉
 	if flag {
-		if prep.Phase == PRE_ONE {
+		if val == OPT { //2f + 1 全 1
 			return c.processRbcOutput(prep.Epoch, prep.Height) // optimistic commit
+		} else { // 全0直接skip
+			c.commitor.FilterBlock(c.rank(prep.Epoch, prep.Height))
+			return nil
 		}
-		c.commitor.FilterBlock(c.rank(prep.Epoch, prep.Height)) // skip the slot
-		return nil
 	}
-	// mixed prepares
-	if prep.Phase == PRE_ONE {
-		p2, err := NewPrepareMsg(c.name, prep.Epoch, prep.Height, PRE_TWO, val, c.sigService)
-		if err != nil {
-			return err
-		}
-		c.broadcastAndSelf(p2)
-		return nil
-	}
-	// PRE_TWO mixed -> start ABA
+	// mixed prepares -> start ABA
+	// val 规则：有 OPT 则输入 1，全 PES 则输入 0
 	return c.sendABAVal(prep.Epoch, prep.Height, 0, val)
 }
 
