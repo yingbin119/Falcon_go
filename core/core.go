@@ -333,10 +333,11 @@ func (c *Core) handlePrepare(prep *PrepareMsg) error {
 	if flag {
 		if val == OPT { //2f + 1 全 1
 			return c.processRbcOutput(prep.Epoch, prep.Height) // optimistic commit
-		} else { // 全0直接skip
-			c.commitor.FilterBlock(c.rank(prep.Epoch, prep.Height))
-			return nil
 		}
+		// else { // 全0直接skip, 改动点
+		// 	c.commitor.FilterBlock(c.rank(prep.Epoch, prep.Height))
+		// 	return nil
+		// }
 	}
 	// mixed prepares -> start ABA
 	// val 规则：有 OPT 则输入 1，全 PES 则输入 0
