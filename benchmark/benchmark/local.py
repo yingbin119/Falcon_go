@@ -42,7 +42,7 @@ class LocalBench:
 
         try:
             Print.info('Setting up testbed...')
-            nodes, rate,batch_size = self.bench_parameters.nodes[0], self.bench_parameters.rate,self.bench_parameters.batch_szie[0]
+            nodes, rate,batch_size = self.bench_parameters.nodes[0], self.bench_parameters.rate[0],self.bench_parameters.batch_szie[0]
             self.node_parameters.json['pool']['rate'] = rate
             self.node_parameters.json['pool']['batch_size'] = batch_size 
             # Cleanup all files.

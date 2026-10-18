@@ -115,7 +115,11 @@ class BenchParameters:
 
             self.nodes = [int(x) for x in nodes]
             self.log_level = int(json['log_level'])
-            self.rate = int(json['rate'])
+            rate = json['rate']
+            rate = rate if isinstance(rate, list) else [rate]
+            if not rate:
+                raise ConfigError('Missing rate')
+            self.rate = [int(x) for x in rate]
             self.batch_szie = [int(x) for x in batch_szie]
             self.duration = int(json['duration'])
             self.runs = int(json['runs']) if 'runs' in json else 1

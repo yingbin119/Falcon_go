@@ -111,7 +111,7 @@ def remote(ctx):
         'nodes': [4],
         'node_instance': 1,                                             # the number of running instance for a node  (max = 4)
         'duration': 30,
-        'rate': 4_000,                                                  # tx send rate
+        'rate': [1_000, 3_000, 5_000, 7_000],                                                  # tx send rate
         'batch_size': [1_000],                              # the max number of tx that can be hold 
         'log_level': 0b1111,                                            # 0x1 infolevel 0x2 debuglevel 0x4 warnlevel 0x8 errorlevel
         'protocol_name': "Falcon",

@@ -112,19 +112,19 @@ class Bench:
             c.put(PathMaker.parameters_file(), '.')
 
     def install(self):
+        # Only tmux is required on the machines (the Go binary is compiled
+        # locally and uploaded). Noninteractive frontend + --force-confold
+        # prevent apt from hanging forever on interactive prompts (e.g. the
+        # openssh-server conffile prompt during a full system upgrade).
         cmd = [
-            'sudo apt-get update',
-            'sudo apt-get -y upgrade',
-            'sudo apt-get -y autoremove',
-
-            # The following dependencies prevent the error: [error: linker `cc` not found].
-            'sudo apt-get -y install tmux',
+            'sudo DEBIAN_FRONTEND=noninteractive apt-get update',
+            'sudo DEBIAN_FRONTEND=noninteractive apt-get -y -o Dpkg::Options::="--force-confold" install tmux',
         ]
-       
+
         hosts = self.manager.hosts(flat=True)
         try:
             g = Group(*hosts, user='root', connect_kwargs=self.connect)
-            g.run(' && '.join(cmd), hide=True)
+            g.run(' && '.join(cmd), hide=True, timeout=600)
             Print.heading(f'Initialized testbed of {len(hosts)} nodes')
         except (GroupException, ExecutionError) as e:
             e = FabricError(e) if isinstance(e, GroupException) else e
@@ -289,12 +289,12 @@ class Bench:
 
         Print.info(f'Running {bench_parameters.protocol}')
         Print.info(f'{node_parameters.faults} byzantine nodes')
-        Print.info(f'tx_size {node_parameters.tx_size} byte, input rate {bench_parameters.rate} tx/s')
+        Print.info(f'tx_size {node_parameters.tx_size} byte, input rates {bench_parameters.rate} tx/s')
         Print.info(f'DDOS attack {node_parameters.ddos}')
-        
+
         #Step 2: Run benchmarks.
         for n in bench_parameters.nodes:
-            
+
             hosts = selected_hosts[:n]
             #Step 3: Upload all configuration files.
             try:
@@ -303,39 +303,40 @@ class Bench:
                 e = FabricError(e) if isinstance(e, GroupException) else e
                 Print.error(BenchError('Failed to configure nodes', e))
 
-            for batch_size in bench_parameters.batch_szie:
-                Print.heading(f'\nRunning {n}/{bench_parameters.node_instance} nodes (batch size: {batch_size:,})')
-                hosts = selected_hosts[:n]
+            for rate in bench_parameters.rate:
+                for batch_size in bench_parameters.batch_szie:
+                    Print.heading(f'\nRunning {n}/{bench_parameters.node_instance} nodes (rate: {rate:,} tx/s, batch size: {batch_size:,})')
+                    hosts = selected_hosts[:n]
 
-                node_parameters.json['pool']['rate'] = bench_parameters.rate
-                node_parameters.json['pool']['batch_size'] = batch_size
-                self.ts = datetime.now().strftime(r"%Y-%m-%d-%H-%M-%S")
-                
-                #Step a: only upload parameters files.
-                try:
-                    self._update(hosts,node_parameters,self.ts)
-                except (subprocess.SubprocessError, GroupException) as e:
-                    e = FabricError(e) if isinstance(e, GroupException) else e
-                    Print.error(BenchError('Failed to update nodes', e))
-                    continue
+                    node_parameters.json['pool']['rate'] = rate
+                    node_parameters.json['pool']['batch_size'] = batch_size
+                    self.ts = datetime.now().strftime(r"%Y-%m-%d-%H-%M-%S")
 
-                protocol = bench_parameters.protocol
-                ddos = node_parameters.ddos
-
-                # Run the benchmark.
-                for i in range(bench_parameters.runs):
-                    Print.heading(f'Run {i+1}/{bench_parameters.runs}')
+                    #Step a: only upload parameters files.
                     try:
-                        self._run_single(
-                            hosts,bench_parameters, self.ts , debug
-                        )
-                        self._logs(hosts, node_parameters.faults , protocol, ddos,bench_parameters,self.ts).print(
-                            PathMaker.result_file(
-                                n, bench_parameters.rate, node_parameters.tx_size,batch_size , node_parameters.faults,self.ts
-                        ))
-                    except (subprocess.SubprocessError, GroupException, ParseError) as e:
-                        self.kill(hosts=hosts)
-                        if isinstance(e, GroupException):
-                            e = FabricError(e)
-                        Print.error(BenchError('Benchmark failed', e))
+                        self._update(hosts,node_parameters,self.ts)
+                    except (subprocess.SubprocessError, GroupException) as e:
+                        e = FabricError(e) if isinstance(e, GroupException) else e
+                        Print.error(BenchError('Failed to update nodes', e))
                         continue
+
+                    protocol = bench_parameters.protocol
+                    ddos = node_parameters.ddos
+
+                    # Run the benchmark.
+                    for i in range(bench_parameters.runs):
+                        Print.heading(f'Run {i+1}/{bench_parameters.runs}')
+                        try:
+                            self._run_single(
+                                hosts,bench_parameters, self.ts , debug
+                            )
+                            self._logs(hosts, node_parameters.faults , protocol, ddos,bench_parameters,self.ts).print(
+                                PathMaker.result_file(
+                                    n, rate, node_parameters.tx_size,batch_size , node_parameters.faults,self.ts
+                            ))
+                        except (subprocess.SubprocessError, GroupException, ParseError) as e:
+                            self.kill(hosts=hosts)
+                            if isinstance(e, GroupException):
+                                e = FabricError(e)
+                            Print.error(BenchError('Benchmark failed', e))
+                            continue
